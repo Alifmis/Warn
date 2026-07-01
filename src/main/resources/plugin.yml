@@ -1,0 +1,6 @@
+name: Warn
+version: '${version}'
+
+main: org.alifmis.warn.Warn
+api-version: '26.1.2'
+load: POSTWORLD
