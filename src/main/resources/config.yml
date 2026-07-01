@@ -1,0 +1,35 @@
+# Warn Plugin Configuration
+# All thresholds and durations are configurable
+
+# MSPT monitoring (milliseconds per tick)
+mspt:
+  enabled: true
+  threshold: 45.0       # mspt threshold to trigger warning
+  duration: 10          # seconds threshold must be exceeded before warning
+
+# CPU monitoring (percentage 0-100)
+cpu:
+  enabled: true
+  threshold: 90.0       # CPU usage percentage threshold
+  duration: 10          # seconds threshold must be exceeded before warning
+
+# RAM monitoring (percentage 0-100)
+ram:
+  enabled: true
+  threshold: 90.0       # RAM usage percentage threshold
+  duration: 10          # seconds threshold must be exceeded before warning
+
+# Check interval in seconds
+check-interval: 1
+
+# Warning message cooldown in seconds (prevent spam)
+warning-cooldown: 15
+
+# Warning messages
+# Use MiniMessage format: https://docs.advntr.dev/minimessage/
+messages:
+  mspt-warning: "<red>⚠ MSPT is high ({mspt}ms) in your region!</red>"
+  cpu-warning: "<red>⚠ CPU usage is high ({cpu}%) in your region!</red>"
+  cpu-warning-op: "<red>⚠ CPU usage is high ({cpu}%)! Location: {world} {x} {y} {z}</red>"
+  ram-warning: "<red>⚠ Server RAM usage is high ({ram}%)!</red>"
+  ram-warning-op: "<red>⚠ Server RAM usage is high ({ram}%)! Location: {world} {x} {y} {z}</red>"

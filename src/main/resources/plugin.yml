@@ -1,6 +1,13 @@
 name: Warn
 version: '${version}'
-
-main: org.alifmis.warn.Warn
-api-version: '26.1.2'
-load: POSTWORLD
+main: org.alifmis.warn.WarnPlugin
+api-version: '1.21'
+folia-supported: true
+description: Warns players about high MSPT, CPU, and RAM usage
+permissions:
+  warn.admin:
+    description: "Allows /warn reload"
+    default: op
+  warn.notify:
+    description: "Receive warnings for all problem types (OP-level notifications)"
+    default: op
