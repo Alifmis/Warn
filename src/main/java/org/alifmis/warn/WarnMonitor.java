@@ -25,11 +25,11 @@ public class WarnMonitor {
     // Double-buffer for MSPT measurements across cycles
     private final Map<UUID, Long> msptBufferA = new ConcurrentHashMap<>();
     private final Map<UUID, Long> msptBufferB = new ConcurrentHashMap<>();
-    private boolean msptActiveA = true; // true = bufferA is active (being filled), false = bufferB active
+    private boolean msptActiveA = true;
 
-    // Exceed tracking
+    // Exceed tracking: per-region for MSPT and CPU, global for RAM
     private final Map<String, ExceedState> msptExceeds = new ConcurrentHashMap<>();
-    private final ExceedState cpuExceed = new ExceedState();
+    private final Map<String, ExceedState> cpuExceeds = new ConcurrentHashMap<>();
     private final ExceedState ramExceed = new ExceedState();
 
     // Per-player warning cooldowns
@@ -67,18 +67,15 @@ public class WarnMonitor {
         tickCount++;
 
         if (config.msptEnabled) {
-            // Flip: current active buffer becomes "ready" (data from last cycle is done)
             Map<UUID, Long> readyBuffer = msptActiveA ? msptBufferA : msptBufferB;
             msptActiveA = !msptActiveA;
             Map<UUID, Long> activeBuffer = msptActiveA ? msptBufferA : msptBufferB;
 
-            // Process the ready buffer (skip first cycle — no data yet)
             if (tickCount > 1 && !readyBuffer.isEmpty()) {
                 processMsptResults(readyBuffer);
             }
             readyBuffer.clear();
 
-            // Schedule new measurements into the active buffer
             Collection<? extends Player> players = Bukkit.getOnlinePlayers();
             if (!players.isEmpty()) {
                 long measureStart = System.nanoTime();
@@ -92,7 +89,7 @@ public class WarnMonitor {
                             activeBuffer.put(player.getUniqueId(), corrected);
                         });
                     } catch (Exception e) {
-                        // Chunk not loaded — skip this player
+                        // Chunk not loaded — skip
                     }
                 }
             }
@@ -127,13 +124,10 @@ public class WarnMonitor {
         for (Map.Entry<String, Double> entry : regionMaxMspt.entrySet()) {
             String regionKey = entry.getKey();
             double mspt = entry.getValue();
-
             ExceedState state = msptExceeds.computeIfAbsent(regionKey, k -> new ExceedState());
 
             if (mspt > config.msptThreshold) {
-                if (state.exceedStartMs == 0) {
-                    state.exceedStartMs = now;
-                }
+                if (state.exceedStartMs == 0) state.exceedStartMs = now;
                 if ((now - state.exceedStartMs) / 1000 >= config.msptDuration) {
                     if ((now - state.lastWarnMs) >= config.warningCooldown * 1000L) {
                         state.lastWarnMs = now;
@@ -155,19 +149,32 @@ public class WarnMonitor {
         double cpuPercent = cpuLoad * 100.0;
         long now = System.currentTimeMillis();
 
-        if (cpuPercent > config.cpuThreshold) {
-            if (cpuExceed.exceedStartMs == 0) {
-                cpuExceed.exceedStartMs = now;
-            }
-            if ((now - cpuExceed.exceedStartMs) / 1000 >= config.cpuDuration) {
-                if ((now - cpuExceed.lastWarnMs) >= config.warningCooldown * 1000L) {
-                    cpuExceed.lastWarnMs = now;
-                    warnCpu(cpuPercent);
-                }
-            }
-        } else {
-            cpuExceed.exceedStartMs = 0;
+        // Group current players by region
+        Map<String, List<Player>> regionPlayers = new LinkedHashMap<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            regionPlayers.computeIfAbsent(getRegionKey(player.getLocation()),
+                k -> new ArrayList<>()).add(player);
         }
+
+        // Check threshold per region (same CPU value for all)
+        for (Map.Entry<String, List<Player>> entry : regionPlayers.entrySet()) {
+            String regionKey = entry.getKey();
+            ExceedState state = cpuExceeds.computeIfAbsent(regionKey, k -> new ExceedState());
+
+            if (cpuPercent > config.cpuThreshold) {
+                if (state.exceedStartMs == 0) state.exceedStartMs = now;
+                if ((now - state.exceedStartMs) / 1000 >= config.cpuDuration) {
+                    if ((now - state.lastWarnMs) >= config.warningCooldown * 1000L) {
+                        state.lastWarnMs = now;
+                        warnCpu(regionKey, cpuPercent, entry.getValue());
+                    }
+                }
+            } else {
+                state.exceedStartMs = 0;
+            }
+        }
+
+        cpuExceeds.keySet().removeIf(key -> !regionPlayers.containsKey(key));
     }
 
     private void checkRam() {
@@ -180,9 +187,7 @@ public class WarnMonitor {
         long now = System.currentTimeMillis();
 
         if (ramPercent > config.ramThreshold) {
-            if (ramExceed.exceedStartMs == 0) {
-                ramExceed.exceedStartMs = now;
-            }
+            if (ramExceed.exceedStartMs == 0) ramExceed.exceedStartMs = now;
             if ((now - ramExceed.exceedStartMs) / 1000 >= config.ramDuration) {
                 if ((now - ramExceed.lastWarnMs) >= config.warningCooldown * 1000L) {
                     ramExceed.lastWarnMs = now;
@@ -206,11 +211,16 @@ public class WarnMonitor {
             boolean isOp = player.hasPermission("warn.notify") || player.isOp();
 
             if (isOp) {
-                Component msg = miniMessage.deserialize(config.msgMsptWarning,
-                    Placeholder.unparsed("mspt", msptStr)
-                ).append(Component.text(" §7[Region: " + regionKey + "]"));
+                // OPs get ALL MSPT warnings + lagging region's approximate coords
+                int[] regionCoords = regionCenterCoords(regionKey);
+                Component msg = miniMessage.deserialize(config.msgMsptWarningOp,
+                    Placeholder.unparsed("mspt", msptStr),
+                    Placeholder.unparsed("region", regionKey),
+                    Placeholder.unparsed("x", String.valueOf(regionCoords[0])),
+                    Placeholder.unparsed("z", String.valueOf(regionCoords[1])));
                 sendIfCooldown(player, msptLastWarn, msg);
             } else if (playerRegion.equals(regionKey)) {
+                // Only players in the affected region
                 Component msg = miniMessage.deserialize(config.msgMsptWarning,
                     Placeholder.unparsed("mspt", msptStr));
                 sendIfCooldown(player, msptLastWarn, msg);
@@ -218,29 +228,28 @@ public class WarnMonitor {
         }
     }
 
-    private void warnCpu(double cpuPercent) {
+    private void warnCpu(String regionKey, double cpuPercent, List<Player> regionPlayers) {
         plugin.getLogger().warning(String.format(
-            "⚠ CPU usage %.1f%% exceeded threshold %.1f%%",
-            cpuPercent, config.cpuThreshold));
+            "⚠ CPU %.1f%% (threshold %.1f%%) in region %s",
+            cpuPercent, config.cpuThreshold, regionKey));
 
         String cpuStr = String.format("%.1f", cpuPercent);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            String playerRegion = getRegionKey(player.getLocation());
             boolean isOp = player.hasPermission("warn.notify") || player.isOp();
 
             if (isOp) {
-                Location loc = player.getLocation();
+                // OPs get ALL CPU warnings with their region info
                 Component msg = miniMessage.deserialize(config.msgCpuWarningOp,
                     Placeholder.unparsed("cpu", cpuStr),
-                    Placeholder.unparsed("world", safeWorldName(loc)),
-                    Placeholder.unparsed("x", String.valueOf(loc.getBlockX())),
-                    Placeholder.unparsed("y", String.valueOf(loc.getBlockY())),
-                    Placeholder.unparsed("z", String.valueOf(loc.getBlockZ())));
+                    Placeholder.unparsed("region", regionKey));
                 sendIfCooldown(player, cpuLastWarn, msg);
-            } else {
-                sendIfCooldown(player, cpuLastWarn,
-                    miniMessage.deserialize(config.msgCpuWarning,
-                        Placeholder.unparsed("cpu", cpuStr)));
+            } else if (playerRegion.equals(regionKey)) {
+                // Only players in the affected region
+                Component msg = miniMessage.deserialize(config.msgCpuWarning,
+                    Placeholder.unparsed("cpu", cpuStr));
+                sendIfCooldown(player, cpuLastWarn, msg);
             }
         }
     }
@@ -255,20 +264,10 @@ public class WarnMonitor {
         for (Player player : Bukkit.getOnlinePlayers()) {
             boolean isOp = player.hasPermission("warn.notify") || player.isOp();
 
-            if (isOp) {
-                Location loc = player.getLocation();
-                Component msg = miniMessage.deserialize(config.msgRamWarningOp,
-                    Placeholder.unparsed("ram", ramStr),
-                    Placeholder.unparsed("world", safeWorldName(loc)),
-                    Placeholder.unparsed("x", String.valueOf(loc.getBlockX())),
-                    Placeholder.unparsed("y", String.valueOf(loc.getBlockY())),
-                    Placeholder.unparsed("z", String.valueOf(loc.getBlockZ())));
-                sendIfCooldown(player, ramLastWarn, msg);
-            } else {
-                sendIfCooldown(player, ramLastWarn,
-                    miniMessage.deserialize(config.msgRamWarning,
-                        Placeholder.unparsed("ram", ramStr)));
-            }
+            // RAM is server-wide — same message for everyone (OP and non-OP)
+            Component msg = miniMessage.deserialize(config.msgRamWarning,
+                Placeholder.unparsed("ram", ramStr));
+            sendIfCooldown(player, ramLastWarn, msg);
         }
     }
 
@@ -291,8 +290,22 @@ public class WarnMonitor {
         return loc.getWorld().getName() + "/r" + rx + "," + rz;
     }
 
-    private static String safeWorldName(Location loc) {
-        return loc.getWorld() != null ? loc.getWorld().getName() : "unknown";
+    private static int[] regionCenterCoords(String regionKey) {
+        // Format: "world/rX,Z"
+        int slash = regionKey.lastIndexOf('/');
+        if (slash < 0) return new int[]{0, 0};
+        String coords = regionKey.substring(slash + 1); // "r2,-1"
+        if (!coords.startsWith("r")) return new int[]{0, 0};
+        String[] parts = coords.substring(1).split(",");
+        if (parts.length != 2) return new int[]{0, 0};
+        try {
+            int rx = Integer.parseInt(parts[0]);
+            int rz = Integer.parseInt(parts[1]);
+            int blockSize = (1 << REGION_SHIFT) * 16; // region step in blocks
+            return new int[]{rx * blockSize + blockSize / 2, rz * blockSize + blockSize / 2};
+        } catch (NumberFormatException e) {
+            return new int[]{0, 0};
+        }
     }
 
     private static class ExceedState {
