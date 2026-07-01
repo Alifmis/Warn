@@ -28,8 +28,8 @@ warning-cooldown: 15
 # Warning messages
 # Use MiniMessage format: https://docs.advntr.dev/minimessage/
 messages:
-  mspt-warning: "<red>⚠ MSPT is high ({mspt}ms) in your region!</red>"
-  cpu-warning: "<red>⚠ CPU usage is high ({cpu}%) in your region!</red>"
-  cpu-warning-op: "<red>⚠ CPU usage is high ({cpu}%)! Location: {world} {x} {y} {z}</red>"
-  ram-warning: "<red>⚠ Server RAM usage is high ({ram}%)!</red>"
-  ram-warning-op: "<red>⚠ Server RAM usage is high ({ram}%)! Location: {world} {x} {y} {z}</red>"
+  mspt-warning: "<red>⚠ MSPT is high (<mspt>ms) in your region!</red>"
+  cpu-warning: "<red>⚠ CPU usage is high (<cpu>%) in your region!</red>"
+  cpu-warning-op: "<red>⚠ CPU usage is high (<cpu>%)! Location: <world> <x> <y> <z></red>"
+  ram-warning: "<red>⚠ Server RAM usage is high (<ram>%)!</red>"
+  ram-warning-op: "<red>⚠ Server RAM usage is high (<ram>%)! Location: <world> <x> <y> <z></red>"
