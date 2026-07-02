@@ -7,10 +7,10 @@ mspt:
   threshold: 45.0       # mspt threshold to trigger warning
   duration: 10          # seconds threshold must be exceeded before warning
 
-# CPU monitoring (percentage 0-100)
+# CPU monitoring (percentage 0-100 per core, from /proc/stat)
 cpu:
   enabled: true
-  threshold: 90.0       # CPU usage percentage threshold
+  threshold: 90.0       # per-core CPU usage percentage threshold
   duration: 10          # seconds threshold must be exceeded before warning
 
 # RAM monitoring (percentage 0-100)
@@ -25,12 +25,23 @@ check-interval: 1
 # Warning message cooldown in seconds (prevent spam)
 warning-cooldown: 15
 
+# Alarm sound played to warned players
+# sound: any valid Bukkit Sound name (https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html)
+# duration: how many seconds to repeat the sound
+# interval: ticks between each sound play (20 ticks = 1 second)
+alarm:
+  enabled: true
+  sound: "BLOCK_NOTE_BLOCK_PLING"
+  volume: 1.0
+  pitch: 1.0
+  duration: 3
+  interval: 2
+
 # Warning messages
 # Use MiniMessage format: https://docs.advntr.dev/minimessage/
 messages:
   mspt-warning: "<red>⚠ MSPT is high (<mspt>ms) in your region!</red>"
-  mspt-warning-op: "<red>⚠ MSPT is high (<mspt>ms) in region <region> (~<x> ~<z>)!</red>"
+  mspt-warning-op: "<red>⚠ MSPT is high (<mspt>ms) in region <region> (<x> <z>)!</red>"
   cpu-warning: "<red>⚠ CPU usage is high (<cpu>%) in your region!</red>"
-  cpu-warning-op: "<red>⚠ CPU usage is high (<cpu>%) in all regions! Your region: <region></red>"
+  cpu-warning-op: "<red>⚠ CPU usage is high (<cpu>%) in region <region> (<x> <z>)!</red>"
   ram-warning: "<red>⚠ Server RAM usage is high (<ram>%)!</red>"
-  ram-warning-op: "<red>⚠ Server RAM usage is high (<ram>%)!</red>"

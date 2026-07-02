@@ -1,5 +1,8 @@
 package org.alifmis.warn;
 
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.Sound;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -23,6 +26,14 @@ public class WarnConfig {
     // General
     public final int checkInterval;
     public final int warningCooldown;
+
+    // Alarm
+    public final boolean alarmEnabled;
+    public final Sound alarmSound;
+    public final float alarmVolume;
+    public final float alarmPitch;
+    public final int alarmDurationSec;
+    public final int alarmIntervalTicks;
 
     // Messages
     public final String msgMsptWarning;
@@ -49,15 +60,40 @@ public class WarnConfig {
         checkInterval = cfg.getInt("check-interval", 1);
         warningCooldown = cfg.getInt("warning-cooldown", 15);
 
+        alarmEnabled = cfg.getBoolean("alarm.enabled", true);
+        alarmVolume = (float) cfg.getDouble("alarm.volume", 1.0);
+        alarmPitch = (float) cfg.getDouble("alarm.pitch", 1.0);
+        alarmDurationSec = cfg.getInt("alarm.duration", 3);
+        alarmIntervalTicks = cfg.getInt("alarm.interval", 2);
+
+        String soundName = cfg.getString("alarm.sound", "BLOCK_NOTE_BLOCK_PLING");
+        alarmSound = resolveSound(soundName, plugin);
+
         msgMsptWarning = cfg.getString("messages.mspt-warning",
             "<red>⚠ MSPT is high (<mspt>ms) in your region!</red>");
         msgMsptWarningOp = cfg.getString("messages.mspt-warning-op",
-            "<red>⚠ MSPT is high (<mspt>ms) in region <region> (~<x> ~<z>)!</red>");
+            "<red>⚠ MSPT is high (<mspt>ms) in region <region> (<x> <z>)!</red>");
         msgCpuWarning = cfg.getString("messages.cpu-warning",
             "<red>⚠ CPU usage is high (<cpu>%) in your region!</red>");
         msgCpuWarningOp = cfg.getString("messages.cpu-warning-op",
-            "<red>⚠ CPU usage is high (<cpu>%) in all regions! Your region: <region></red>");
+            "<red>⚠ CPU usage is high (<cpu>%) in region <region> (<x> <z>)!</red>");
         msgRamWarning = cfg.getString("messages.ram-warning",
             "<red>⚠ Server RAM usage is high (<ram>%)!</red>");
+    }
+
+    private static Sound resolveSound(String name, JavaPlugin plugin) {
+        // Try Registry first (minecraft: namespace assumed)
+        Sound sound = Registry.SOUNDS.get(NamespacedKey.minecraft(name.toLowerCase()));
+        if (sound != null) return sound;
+
+        // Fallback: legacy Sound enum
+        try {
+            @SuppressWarnings("removal")
+            Sound legacy = Sound.valueOf(name.toUpperCase());
+            return legacy;
+        } catch (IllegalArgumentException ignored) {}
+
+        plugin.getLogger().warning("Unknown alarm sound '" + name + "', falling back to BLOCK_NOTE_BLOCK_PLING");
+        return Registry.SOUNDS.get(NamespacedKey.minecraft("block.note_block.pling"));
     }
 }
