@@ -91,7 +91,7 @@ public class WarnMonitor {
                         plugin.getServer().getRegionScheduler().execute(plugin, loc, () -> {
                             long wallNanos = System.nanoTime();
                             long delay = wallNanos - startNanos.get();
-                            long threadId = Thread.currentThread().getId();
+                            long threadId = Thread.currentThread().threadId();
                             long cpuNanos = threadBean.getCurrentThreadCpuTime();
                             activeBuffer.put(player.getUniqueId(),
                                 new RegionSample(delay, wallNanos, threadId, cpuNanos));

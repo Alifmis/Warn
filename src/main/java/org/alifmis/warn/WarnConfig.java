@@ -82,16 +82,12 @@ public class WarnConfig {
     }
 
     private static Sound resolveSound(String name, JavaPlugin plugin) {
-        // Try Registry first (minecraft: namespace assumed)
+        // Try with minecraft: namespace, then as-is
         Sound sound = Registry.SOUNDS.get(NamespacedKey.minecraft(name.toLowerCase()));
+        if (sound == null) {
+            sound = Registry.SOUNDS.get(NamespacedKey.fromString(name.toLowerCase()));
+        }
         if (sound != null) return sound;
-
-        // Fallback: legacy Sound enum
-        try {
-            @SuppressWarnings("removal")
-            Sound legacy = Sound.valueOf(name.toUpperCase());
-            return legacy;
-        } catch (IllegalArgumentException ignored) {}
 
         plugin.getLogger().warning("Unknown alarm sound '" + name + "', falling back to BLOCK_NOTE_BLOCK_PLING");
         return Registry.SOUNDS.get(NamespacedKey.minecraft("block.note_block.pling"));
