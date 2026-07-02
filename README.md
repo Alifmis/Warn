@@ -19,7 +19,7 @@ A Folia/Paper region-aware performance warning plugin. Monitors MSPT, CPU, and R
 
 ## Installation
 
-1. Download `Warn-1.0-SNAPSHOT.jar` from [Releases](https://github.com/your/repo/releases) (No releases yet, you may build on yourself)
+1. Download `Warn-1.0-SNAPSHOT.jar` from [Releases](https://github.com/Alifmis/Warn/releases) (No releases yet, you may build on yourself)
 2. Place it in your server's `plugins/` folder
 3. Restart the server (or load with a plugin manager)
 4. Edit `plugins/Warn/config.yml` to adjust thresholds
