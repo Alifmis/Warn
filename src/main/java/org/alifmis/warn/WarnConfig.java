@@ -82,7 +82,6 @@ public class WarnConfig {
     }
 
     private static Sound resolveSound(String name, JavaPlugin plugin) {
-        // Try with minecraft: namespace, then as-is
         Sound sound = Registry.SOUNDS.get(NamespacedKey.minecraft(name.toLowerCase()));
         if (sound == null) {
             sound = Registry.SOUNDS.get(NamespacedKey.fromString(name.toLowerCase()));

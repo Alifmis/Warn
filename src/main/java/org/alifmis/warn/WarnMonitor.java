@@ -108,6 +108,8 @@ public class WarnMonitor {
         }
     }
 
+    // Processing
+
     private void processResults(Map<UUID, RegionSample> samples) {
         long now = System.currentTimeMillis();
 
