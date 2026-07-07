@@ -1,6 +1,6 @@
 # Warn
 
-A Folia/Paper region-aware performance warning plugin. Monitors MSPT, CPU, and RAM per region and warns players when thresholds are exceeded.
+A Folia ONLY region-aware performance warning plugin. Monitors MSPT, CPU, and RAM per region and warns players when thresholds are exceeded.
 
 ## Features
 
@@ -14,12 +14,12 @@ A Folia/Paper region-aware performance warning plugin. Monitors MSPT, CPU, and R
 
 ## Requirements
 
-- **Folia** or **Paper** 1.21.4+ (Paper 26.1+)
+- **Folia** 1.21.4+ (Paper 26.1+)
 - Java 21+
 
 ## Installation
 
-1. Download `Warn-1.0-SNAPSHOT.jar` from [Releases](https://github.com/Alifmis/Warn/releases) (No releases yet, you may build on yourself)
+1. Download `Warn-1.0-SNAPSHOT.jar` from [Releases](https://github.com/Alifmis/Warn/releases)
 2. Place it in your server's `plugins/` folder
 3. Restart the server (or load with a plugin manager)
 4. Edit `plugins/Warn/config.yml` to adjust thresholds
