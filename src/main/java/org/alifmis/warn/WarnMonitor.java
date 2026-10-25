@@ -205,6 +205,7 @@ public class WarnMonitor {
         if (config.cpuEnabled) cpuExceeds.keySet().removeIf(key -> !regionPlayers.containsKey(key));
     }
 
+    // RAM check
     private void checkRam() {
         Runtime runtime = Runtime.getRuntime();
         long maxMem = runtime.maxMemory();
@@ -227,6 +228,7 @@ public class WarnMonitor {
         }
     }
 
+    // warning delivery
     private void warnMspt(String regionKey, double mspt, List<Player> regionPlayers) {
         plugin.getLogger().warning(String.format(
             "⚠ MSPT %.1fms (threshold %.1fms) in region %s",
@@ -319,6 +321,7 @@ public class WarnMonitor {
             task -> soundTask.cancel(), null, totalTicks);
     }
 
+    // helpers
     private String getRegionKey(Location loc) {
         if (loc.getWorld() == null) return "unknown";
         int cx = loc.getBlockX() >> 4;
@@ -342,6 +345,7 @@ public class WarnMonitor {
         }
     }
 
+    // data classes
     private record RegionSample(long delayNanos, long wallNanos, long threadId, long cpuNanos) {}
 
     private record ThreadCpuSnapshot(long wallNanos, long cpuNanos) {}

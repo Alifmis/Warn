@@ -18,6 +18,7 @@ java {
 
 tasks {
     runServer {
+        // only the Minecraft version is required; the built jar is used automatically
         minecraftVersion("26.1.2")
         jvmArgs("-Xms2G", "-Xmx2G")
     }
